@@ -1,0 +1,34 @@
+
+name: 'SecondBoat IaC Scan'
+description: 'Scan your Terraform, CloudFormation, and more for security misconfigurations on every push.'
+author: 'SecondBoat'
+
+branding:
+  icon: 'shield'
+  color: 'blue'
+
+inputs:
+  api-key:
+    description: 'SecondBoat CI API Key'
+    required: true
+  org-id:
+    description: 'Your SecondBoat Organization ID'
+    required: true
+  api-url:
+    description: 'SecondBoat API endpoint'
+    required: false
+    default: 'https://api.secondboat.io/v1/scan'
+  fail-on-violation:
+    description: 'Fail the workflow if violations are found'
+    required: false
+    default: 'true'
+
+outputs:
+  status:
+    description: 'Scan status (passed, failed, no_iac)'
+  total_failed:
+    description: 'Number of failed checks'
+
+runs:
+  using: 'node20'
+  main: 'dist/index.js'
