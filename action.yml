@@ -18,10 +18,10 @@ inputs:
     description: 'SecondBoat API endpoint'
     required: false
     default: 'https://api.secondboat.io/v1/scan'
-  fail-on-violation:
-    description: 'Fail the workflow if violations are found'
+  fail-on:
+    description: 'Minimum severity to fail the pipeline (CRITICAL, HIGH, MEDIUM, LOW, none)'
     required: false
-    default: 'true'
+    default: 'HIGH'
 
 outputs:
   status:

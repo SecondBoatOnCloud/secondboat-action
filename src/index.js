@@ -1,35 +1,36 @@
-
-const core   = require('@actions/core');
+const core = require('@actions/core');
 const github = require('@actions/github');
-const https  = require('https');
+const https = require('https');
+
+const SEVERITY_ORDER = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 
 async function run() {
   try {
-    const apiKey  = core.getInput('api-key',  { required: true });
-    const orgId   = core.getInput('org-id',   { required: true });
-    const apiUrl  = core.getInput('api-url');
-    const failOn  = core.getInput('fail-on-violation') === 'true';
+    const apiKey = core.getInput('api-key', { required: true });
+    const orgId = core.getInput('org-id', { required: true });
+    const apiUrl = core.getInput('api-url');
+    const failOn = core.getInput('fail-on') || 'HIGH';
 
-    const ctx      = github.context;
+    const ctx = github.context;
     const repoName = `${ctx.repo.owner}/${ctx.repo.repo}`;
-    const branch   = ctx.ref.replace('refs/heads/', '');
-    const sha      = ctx.sha;
+    const branch = ctx.ref.replace('refs/heads/', '');
+    const sha = ctx.sha;
 
     const payload = JSON.stringify({
-      org_id:     orgId,
-      repo_name:  repoName,
-      branch:     branch,
+      org_id: orgId,
+      repo_name: repoName,
+      branch: branch,
       commit_sha: sha,
     });
 
-    const url     = new URL(apiUrl);
+    const url = new URL(apiUrl);
     const options = {
       hostname: url.hostname,
-      path:     url.pathname,
-      method:   'POST',
-      headers:  {
-        'Content-Type':   'application/json',
-        'x-api-key':      apiKey,
+      path: url.pathname,
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': apiKey,
         'Content-Length': Buffer.byteLength(payload),
       },
     };
@@ -53,7 +54,7 @@ async function run() {
     });
 
     const frameworks = body.iac_frameworks?.join(', ') ?? 'N/A';
-    const shortSha   = sha.slice(0, 7);
+    const shortSha = sha.slice(0, 7);
 
     core.info('──────────────────────────────────────');
     core.info(`  Repository : ${repoName}`);
@@ -73,12 +74,21 @@ async function run() {
       body.findings?.forEach(f => {
         core.error(`[${f.severity}] ${f.check_id} — ${f.resource} | ${f.file_path}:${f.line_start}`);
       });
-      if (failOn) core.setFailed(`❌ SecondBoat found ${body.total_failed} violation(s)`);
+
+      const shouldFail = failOn !== 'none' && body.findings?.some(f =>
+        SEVERITY_ORDER.indexOf(f.severity) >= SEVERITY_ORDER.indexOf(failOn)
+      );
+
+      if (shouldFail) {
+        core.setFailed(`❌ SecondBoat found violations at ${failOn}+ severity`);
+      } else {
+        core.warning(`⚠️  Violations found but below ${failOn} threshold — pipeline continues`);
+      }
     } else {
       core.info('  🎉 All checks passed');
     }
 
-    core.setOutput('status',       body.status);
+    core.setOutput('status', body.status);
     core.setOutput('total_failed', String(body.total_failed));
 
   } catch (err) {
