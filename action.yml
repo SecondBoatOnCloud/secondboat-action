@@ -17,7 +17,7 @@ inputs:
   api-url:
     description: 'SecondBoat API endpoint'
     required: false
-    default: 'https://api.secondboat.io/v1/scan'
+    default: 'https://rferomupfntkfwcmmgfd.supabase.co/functions/v1/ci-scan'
   fail-on:
     description: 'Minimum severity to fail the pipeline (CRITICAL, HIGH, MEDIUM, LOW, none)'
     required: false
