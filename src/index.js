@@ -6,8 +6,7 @@ const SEVERITY_ORDER = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
 const SEVERITY_ICON  = { CRITICAL: '🔴', HIGH: '🟠', MEDIUM: '🟡', LOW: '🔵' };
 
 function getSeverity(f) {
-  const raw = f.severity || f.check_severity || '';
-  return raw.toUpperCase();
+  return (f.severity || f.check_severity || '').toUpperCase();
 }
 
 function sevBadge(f) {
@@ -80,6 +79,9 @@ async function run() {
       req.end();
     });
 
+    // Debug: log top-level keys so we always know what the API returns
+    core.debug(`[SecondBoat] Response keys: ${Object.keys(body).join(', ')}`);
+
     if (body.status === 'no_iac') {
       core.warning('  ⚠️   No IaC files detected in this repository');
       core.setOutput('status', 'no_iac');
@@ -87,15 +89,41 @@ async function run() {
       return;
     }
 
-    // ── Correct field paths (mapped directly from DynamoDB) ───────────────────
-    const secFindings = body.checkov_findings    || [];
-    const govFindings = body.governance_findings || [];
+    // ── Field paths: try all known variants ──────────────────────────────────
+    // Security (checkov) — original working paths first
+    const secFindings = body.checkov_findings
+                     || body.checkov?.findings
+                     || body.findings
+                     || [];
 
-    const secPassed = body.total_checkov_passed    ?? 0;
-    const secFailed = body.total_checkov_failed    ?? 0;
-    const secTotal  = secPassed + secFailed;
-    const govPassed = body.total_governance_passed ?? 0;
-    const govFailed = body.total_governance_failed ?? 0;
+    const secPassed = body.total_checkov_passed
+                   ?? body.checkov?.total_passed
+                   ?? body.total_passed
+                   ?? 0;
+
+    const secFailed = body.total_checkov_failed
+                   ?? body.checkov?.total_failed
+                   ?? body.total_failed
+                   ?? 0;
+
+    const secTotal  = body.total_checkov_checks
+                   ?? body.checkov?.total_checks
+                   ?? body.total_checks
+                   ?? (secPassed + secFailed);
+
+    // Governance
+    const govFindings = body.governance_findings
+                     || body.governance?.findings
+                     || [];
+
+    const govPassed = body.total_governance_passed
+                   ?? body.governance?.total_passed
+                   ?? 0;
+
+    const govFailed = body.total_governance_failed
+                   ?? body.governance?.total_failed
+                   ?? 0;
+
     const govTotal  = govPassed + govFailed;
 
     // ══════════════════════════════════════════════════════════════════════════
@@ -109,17 +137,15 @@ async function run() {
       core.info('  🎉  All security checks passed — no violations found');
     } else {
       blank();
-      // Severity is always null for standalone checkov (no Prisma Cloud API key)
       core.info('  ℹ️   Severity not shown — checkov only provides severity with a Prisma Cloud API key');
       blank();
 
       const failedSec = secFindings.filter(f => !f.status || f.status === 'FAILED');
-
       failedSec.forEach((f, idx) => {
         const num      = String(idx + 1).padStart(2, '0');
         const location = [
-          f.file_path   || '',
-          f.line_start  ? `:${f.line_start}` : '',
+          f.file_path  || '',
+          f.line_start ? `:${f.line_start}` : '',
           f.line_end && f.line_end !== f.line_start ? `-${f.line_end}` : '',
         ].join('');
 
@@ -209,8 +235,6 @@ async function run() {
     blank();
 
     // ── FAIL GATE ─────────────────────────────────────────────────────────────
-    // Checkov has no severity — gate only on governance
-    // If org wants checkov to always fail, set failOn to 'none' and handle above
     const govShouldFail = failOn !== 'none' && govFindings.some(f =>
       f.status === 'FAILED' &&
       SEVERITY_ORDER.indexOf(getSeverity(f)) >= SEVERITY_ORDER.indexOf(failOn)
