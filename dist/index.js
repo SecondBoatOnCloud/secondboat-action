@@ -31874,8 +31874,9 @@ async function run() {
     const sha       = ctx.sha;
     const shortSha  = sha.slice(0, 7);
     const scannedAt = new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
+    const commitMessage = ctx.payload.head_commit?.message || '';
 
-    const payload = JSON.stringify({ org_id: orgId, repo_name: repoName, branch, commit_sha: sha });
+    const payload = JSON.stringify({ org_id: orgId, repo_name: repoName, branch, commit_sha: sha, commit_message: commitMessage });
     const url     = new URL(apiUrl);
     const options = {
       hostname: url.hostname,
