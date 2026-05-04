@@ -22,6 +22,10 @@ inputs:
     description: 'Minimum severity to fail the pipeline (CRITICAL, HIGH, MEDIUM, LOW, none)'
     required: false
     default: 'HIGH'
+  repo-token:
+    description: 'GitHub token for cloning the repository'
+    required: false
+    default: ${{ github.token }}
 
 outputs:
   status:
