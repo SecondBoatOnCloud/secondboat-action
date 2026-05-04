@@ -31876,7 +31876,22 @@ async function run() {
     const scannedAt = new Date().toISOString().replace('T', ' ').slice(0, 16) + ' UTC';
     const commitMessage = ctx.payload.head_commit?.message || '';
 
-    const payload = JSON.stringify({ org_id: orgId, repo_name: repoName, branch, commit_sha: sha, commit_message: commitMessage });
+    // repo_token = GITHUB_TOKEN auto-injected by GitHub Actions — no user setup needed
+    // repo_id    = numeric repository ID, used for CI-first auto-registration
+    const repoToken = process.env.GITHUB_TOKEN || '';
+    const repoId    = String(ctx.payload.repository?.id || '');
+
+    const payload = JSON.stringify({
+      org_id:         orgId,
+      repo_name:      repoName,
+      branch,
+      commit_sha:     sha,
+      commit_message: commitMessage,
+      repo_token:     repoToken,   // GITHUB_TOKEN — Lambda uses this to clone if no App install
+      repo_id:        repoId,      // numeric repo ID for CI-first auto-registration
+      repo_host:      'github',    // tells Lambda which Git host this is
+    });
+
     const url     = new URL(apiUrl);
     const options = {
       hostname: url.hostname,
@@ -31916,7 +31931,6 @@ async function run() {
       req.end();
     });
 
-    // Debug: log top-level keys so we always know what the API returns
     core.debug(`[SecondBoat] Response keys: ${Object.keys(body).join(', ')}`);
 
     if (body.status === 'no_iac') {
@@ -31926,8 +31940,7 @@ async function run() {
       return;
     }
 
-    // ── Field paths: try all known variants ──────────────────────────────────
-    // Security (checkov) — original working paths first
+    // ── Field paths — try all known variants ─────────────────────────────────
     const secFindings = body.checkov_findings
                      || body.checkov?.findings
                      || body.findings
@@ -31948,7 +31961,6 @@ async function run() {
                    ?? body.total_checks
                    ?? (secPassed + secFailed);
 
-    // Governance
     const govFindings = body.governance_findings
                      || body.governance?.findings
                      || [];
