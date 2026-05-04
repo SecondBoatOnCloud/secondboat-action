@@ -42,7 +42,7 @@ async function run() {
 
     // repo_token = GITHUB_TOKEN auto-injected by GitHub Actions — no user setup needed
     // repo_id    = numeric repository ID, used for CI-first auto-registration
-    const repoToken = process.env.GITHUB_TOKEN || '';
+    const repoToken = core.getInput('repo-token') || process.env.GITHUB_TOKEN || '';
     const repoId    = String(ctx.payload.repository?.id || '');
 
     const payload = JSON.stringify({
