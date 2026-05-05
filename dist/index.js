@@ -31913,7 +31913,7 @@ async function run() {
     core.info(`    Branch      : ${branch}`);
     core.info(`    Commit      : ${shortSha}`);
     core.info(`    Scanned At  : ${scannedAt}`);
-    core.info(`    Fail On     : ${failOn}+  (applies to Governance; Security has no severity)`);
+    core.info(`    Fail On     : ${failOn}+`);
     blank();
 
     const body = await new Promise((resolve, reject) => {
@@ -31975,33 +31975,37 @@ async function run() {
 
     const govTotal  = govPassed + govFailed;
 
+
     // ══════════════════════════════════════════════════════════════════════════
     //  SECTION 1 — SECURITY FINDINGS
     // ══════════════════════════════════════════════════════════════════════════
     heading('SECTION 1 of 2  ·  SECURITY FINDINGS');
     core.info(`    ✅  Passed : ${secPassed}    ❌  Failed : ${secFailed}    📊  Total : ${secTotal}`);
 
+
     if (secFailed === 0) {
       blank();
       core.info('  🎉  All security checks passed — no violations found');
     } else {
       blank();
-      core.info('  ℹ️   Severity not shown — checkov only provides severity with a Prisma Cloud API key');
-      blank();
+
 
       const failedSec = secFindings.filter(f => !f.status || f.status === 'FAILED');
       failedSec.forEach((f, idx) => {
         const num      = String(idx + 1).padStart(2, '0');
+        const sev      = sevBadge(f);
         const location = [
           f.file_path  || '',
           f.line_start ? `:${f.line_start}` : '',
           f.line_end && f.line_end !== f.line_start ? `-${f.line_end}` : '',
         ].join('');
 
+
         divider();
-        core.info(`  [${num}]  ${f.check_id || 'N/A'}`);
+        core.info(`  [${num}]  ${f.check_id || 'N/A'}${sev ? `   ${sev}` : ''}`);
         divider();
         core.info(`         Check     : ${f.check_name || 'N/A'}`);
+        core.info(`         Severity  : ${sev          || 'N/A'}`);
         core.info(`         Resource  : ${f.resource   || 'N/A'}`);
         core.info(`         Framework : ${f.framework  || 'N/A'}`);
         core.info(`         File      : ${location     || 'N/A'}`);
@@ -32009,11 +32013,13 @@ async function run() {
       });
     }
 
+
     // ══════════════════════════════════════════════════════════════════════════
     //  SECTION 2 — GOVERNANCE FINDINGS
     // ══════════════════════════════════════════════════════════════════════════
     heading('SECTION 2 of 2  ·  GOVERNANCE FINDINGS');
     core.info(`    ✅  Passed : ${govPassed}    ❌  Failed : ${govFailed}    📊  Total : ${govTotal}`);
+
 
     if (govTotal === 0) {
       blank();
@@ -32028,9 +32034,11 @@ async function run() {
         SEVERITY_ORDER.indexOf(getSeverity(b)) - SEVERITY_ORDER.indexOf(getSeverity(a))
       );
 
+
       sorted.forEach((f, idx) => {
         const num = String(idx + 1).padStart(2, '0');
         const sev = sevBadge(f);
+
 
         divider();
         core.info(`  [${num}]  ${f.policy_title || 'N/A'}${sev ? `   ${sev}` : ''}`);
@@ -32039,6 +32047,7 @@ async function run() {
         core.info(`         Resource      : ${f.resource      || 'N/A'}`);
         core.info(`         Resource Type : ${f.resource_type || 'N/A'}`);
         core.info(`         Category      : ${f.category      || 'N/A'}`);
+
 
         if (f.failed_conditions?.length > 0) {
           blank();
@@ -32053,11 +32062,13 @@ async function run() {
       });
     }
 
+
     // ══════════════════════════════════════════════════════════════════════════
     //  SUMMARY
     // ══════════════════════════════════════════════════════════════════════════
     const totalFailed = secFailed + govFailed;
     const totalPassed = secPassed + govPassed;
+
 
     blank();
     core.info(L('━'));
@@ -32069,6 +32080,7 @@ async function run() {
     core.info(`    📊  Total Checks   : ${totalPassed + totalFailed}`);
     core.info(`    🎯  Fail Threshold : ${failOn}+  (Governance only)`);
 
+
     if (govFailed > 0) {
       blank();
       core.info('    Governance Severity Breakdown:');
@@ -32079,9 +32091,11 @@ async function run() {
       });
     }
 
+
     blank();
     core.info(L('━'));
     blank();
+
 
     // ── FAIL GATE ─────────────────────────────────────────────────────────────
     const govShouldFail = failOn !== 'none' && govFindings.some(f =>
@@ -32089,24 +32103,25 @@ async function run() {
       SEVERITY_ORDER.indexOf(getSeverity(f)) >= SEVERITY_ORDER.indexOf(failOn)
     );
 
+
     if (govShouldFail) {
       core.setFailed(`❌  SecondBoat found governance violations at or above ${failOn} severity`);
-    } else if (secFailed > 0) {
-      core.warning(`⚠️   ${secFailed} security check(s) failed — severity gating unavailable without Prisma Cloud API key`);
     } else if (govFailed > 0) {
       core.warning(`⚠️   Governance violations found but all below ${failOn} threshold — pipeline continues`);
     }
 
+
     core.setOutput('status',       body.status);
     core.setOutput('total_failed', String(totalFailed));
+
 
   } catch (err) {
     core.setFailed(`SecondBoat scan failed: ${err.message}`);
   }
 }
 
-run();
 
+run();
 module.exports = __webpack_exports__;
 /******/ })()
 ;
