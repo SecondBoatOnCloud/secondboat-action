@@ -32078,7 +32078,7 @@ async function run() {
     core.info(`    ✅  Passed         : ${totalPassed}`);
     core.info(`    ❌  Failed         : ${totalFailed}`);
     core.info(`    📊  Total Checks   : ${totalPassed + totalFailed}`);
-    core.info(`    🎯  Fail Threshold : ${failOn}+  (Governance only)`);
+    core.info(`    🎯  Fail Threshold : ${failOn}`);
 
 
     if (govFailed > 0) {
