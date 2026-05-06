@@ -207,10 +207,10 @@ async function run() {
         divider();
         core.info(`  [${num}]  ${f.policy_title || 'N/A'}${sev ? `   ${sev}` : ''}`);
         divider();
-        core.info(`         Policy ID     : ${f.policy_id     || 'N/A'}`);
+        // core.info(`         Policy ID     : ${f.policy_id     || 'N/A'}`);
         core.info(`         Resource      : ${f.resource      || 'N/A'}`);
         core.info(`         Resource Type : ${f.resource_type || 'N/A'}`);
-        core.info(`         Category      : ${f.category      || 'N/A'}`);
+        // core.info(`         Category      : ${f.category      || 'N/A'}`);
 
 
         if (f.failed_conditions?.length > 0) {
